@@ -1,0 +1,137 @@
+openapi: 3.0.3
+info:
+  title: HealthCare Booking & Consultation API
+  description: Production-grade backend API for telemedicine consultations.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local Development Server
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user (Patient or Doctor)
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+        '400':
+          description: Validation Error (e.g., Email already exists)
+
+  /doctors:
+    get:
+      summary: Search and filter available doctors
+      tags:
+        - Doctors
+      parameters:
+        - name: speciality
+          in: query
+          schema:
+            type: string
+        - name: available_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of doctors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Doctor'
+
+  /consultations/book:
+    post:
+      summary: Book a consultation slot
+      tags:
+        - Consultations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique key to prevent double booking and duplicate payments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingRequest'
+      responses:
+        '201':
+          description: Consultation booked successfully
+        '409':
+          description: Conflict - Slot already booked
+        '429':
+          description: Rate limit exceeded
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - role
+        - first_name
+        - last_name
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        role:
+          type: string
+          enum: [Patient, Doctor]
+        first_name:
+          type: string
+        last_name:
+          type: string
+
+    Doctor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        first_name:
+          type: string
+        speciality:
+          type: string
+        experience_years:
+          type: integer
+
+    BookingRequest:
+      type: object
+      required:
+        - doctor_id
+        - slot_id
+      properties:
+        doctor_id:
+          type: string
+          format: uuid
+        slot_id:
+          type: string
+          format: uuid
