@@ -1,0 +1,37 @@
+# Dependency directories
+node_modules/
+
+# Compiled Output (TypeScript)
+dist/
+build/
+out/
+
+# Environment Variables & Secrets
+.env
+.env.test
+.env.development
+.env.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# Docker & Database Volumes (Agar DB data locally map kiya ho)
+pgdata/
+redisdata/
+.docker/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
