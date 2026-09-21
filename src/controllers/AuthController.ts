@@ -1,9 +1,9 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { container } from 'tsyringe';
 import { AuthService } from '../services/AuthService';
 
 export class AuthController {
-  static async register(req: Request, res: Response) {
+  static async register(req: Request, res: Response, next: NextFunction) {
     try {
       const authService = container.resolve(AuthService);
       
@@ -21,14 +21,11 @@ export class AuthController {
         }
       });
     } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Registration failed'
-      });
+      next(error);
     }
   }
 
-  static async login(req: Request, res: Response) {
+  static async login(req: Request, res: Response, next: NextFunction) {
     try {
       const authService = container.resolve(AuthService);
       const { user, token } = await authService.login(req.body);
@@ -48,8 +45,7 @@ export class AuthController {
         }
       });
     } catch (error: any) {
-      // 401 Unauthorized for invalid credentials
-      res.status(401).json({ success: false, message: error.message || 'Login failed' });
+      next(error);
     }
   }
 }
