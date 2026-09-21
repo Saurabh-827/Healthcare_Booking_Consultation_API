@@ -27,4 +27,29 @@ export class AuthController {
       });
     }
   }
+
+  static async login(req: Request, res: Response) {
+    try {
+      const authService = container.resolve(AuthService);
+      const { user, token } = await authService.login(req.body);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Login successful',
+        data: {
+          token,
+          user: {
+            id: user.id,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            role: user.role
+          }
+        }
+      });
+    } catch (error: any) {
+      // 401 Unauthorized for invalid credentials
+      res.status(401).json({ success: false, message: error.message || 'Login failed' });
+    }
+  }
 }
