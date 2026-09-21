@@ -2,16 +2,17 @@ import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/database';
 
 export class User extends Model {
-  public id!: string;
-  public email!: string;
-  public password!: string;
-  public role!: 'Patient' | 'Doctor' | 'Admin';
-  public first_name!: string;
-  public last_name!: string;
+  public declare id: string;
+  public declare email: string;
+  public declare password: string;
+  public declare role: 'Patient' | 'Doctor' | 'Admin';
+  public declare first_name: string;
+  public declare last_name: string;
+  
   
   // Timestamps
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
+  public declare readonly created_at: Date;
+  public declare readonly updated_at: Date;
 }
 
 User.init(
