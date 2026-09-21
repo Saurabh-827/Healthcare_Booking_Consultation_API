@@ -1,4 +1,6 @@
+import { User } from './models/User';
 import { Appointment } from './models/Appointment';
+import { Payment } from './models/Payment';
 import app from './app';
 import { connectDB } from './config/database';
 
