@@ -1,6 +1,7 @@
 import { injectable, inject } from 'tsyringe';
 import { AppointmentRepository } from '../repositories/AppointmentRepository';
 import { AppError } from '../utils/AppError';
+import { Appointment } from '../models/Appointment';
 
 @injectable()
 export class AppointmentService {
@@ -24,7 +25,21 @@ export class AppointmentService {
       };
     }
 
-    // 2. New request -> booking
+    // 2. DOCTOR AVAILABILITY CHECK
+    const appointmentDate = new Date(date);
+    const overlappingAppointment = await Appointment.findOne({
+      where: {
+        doctor_id: doctorId,
+        appointment_date: appointmentDate,
+        status: ['pending', 'confirmed']
+      }
+    });
+
+    if (overlappingAppointment) {
+      throw new AppError('Doctor is not available at this time slot', 409); // 409 Conflict status
+    }
+
+    // 3. New request -> booking
     const newAppointment = await this.appointmentRepository.create({
       patient_id: patientId,
       doctor_id: doctorId,
