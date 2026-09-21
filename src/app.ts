@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import authRoutes from './routes/auth.routes';
+import appointmentRoutes from './routes/appointment.routes'
 import { errorHandler } from './middlewares/error.middleware';
 
 const app = express();
@@ -14,6 +15,7 @@ app.use(helmet());
 
 // Routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/appointments', appointmentRoutes);
 
 // Basic health check endpoint
 app.get('/health', (req, res) => {

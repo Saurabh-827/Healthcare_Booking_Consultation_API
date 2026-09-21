@@ -1,3 +1,4 @@
+import { Appointment } from './models/Appointment';
 import app from './app';
 import { connectDB } from './config/database';
 
