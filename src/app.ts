@@ -10,12 +10,32 @@ import doctorRoutes from './routes/doctor.routes';
 import prescriptionRoutes from './routes/prescription.routes';
 import { globalRateLimiter, authRateLimiter } from './middlewares/rateLimiter.middleware';
 
+import morgan from 'morgan';
+import { logger } from './utils/logger';
+import { metricsRegistry, metricsMiddleware } from './utils/metrics';
+import responseTime from 'response-time';
+
 const app = express();
 
 // Middlewares
 app.use(express.json());
 app.use(cors());
 app.use(helmet());
+
+app.use(responseTime());
+app.use(metricsMiddleware);
+
+// Morgan HTTP Logger (Winston connected)
+const morganMiddleware = morgan(
+  ':method :url :status :res[content-length] - :response-time ms',
+  {
+    stream: {
+      // Configured Morgan to use custom logger with the http severity
+      write: (message) => logger.http(message.trim()),
+    },
+  }
+);
+app.use(morganMiddleware);
 
 app.use(globalRateLimiter);
 
@@ -29,6 +49,10 @@ app.use('/api/v1/prescriptions', prescriptionRoutes);
 // Basic health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'Healthcare API is running' });
+});
+app.get('/metrics', async (req, res) => {
+  res.setHeader('Content-Type', metricsRegistry.contentType);
+  res.send(await metricsRegistry.metrics());
 });
 
 app.use((req, res, next) => {
