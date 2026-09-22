@@ -8,6 +8,7 @@ import paymentRoutes from './routes/payment.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import doctorRoutes from './routes/doctor.routes';
 import prescriptionRoutes from './routes/prescription.routes';
+import { globalRateLimiter, authRateLimiter } from './middlewares/rateLimiter.middleware';
 
 const app = express();
 
@@ -16,8 +17,10 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet());
 
+app.use(globalRateLimiter);
+
 // Routes
-app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/auth', authRateLimiter, authRoutes);
 app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/doctors', doctorRoutes);
