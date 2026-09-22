@@ -3,6 +3,7 @@ import './models/Doctor';
 import './models/Appointment';
 import './models/Payment';
 import './models/Prescription';
+import './models/AuditLog';
 
 import app from './app';
 import { connectDB } from './config/database';
