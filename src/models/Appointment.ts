@@ -3,12 +3,12 @@ import { sequelize } from '../config/database';
 import { User } from './User';
 
 export class Appointment extends Model {
-  public id!: string;
-  public patient_id!: string;
-  public doctor_id!: string;
-  public appointment_date!: Date;
-  public status!: 'pending' | 'confirmed' | 'cancelled';
-  public idempotency_key!: string; 
+  public declare id: string;
+  public declare patient_id: string;
+  public declare doctor_id: string;
+  public declare appointment_date: Date;
+  public declare status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  public declare idempotency_key: string; 
 }
 
 Appointment.init(
@@ -33,7 +33,7 @@ Appointment.init(
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM('pending', 'confirmed', 'cancelled'),
+      type: DataTypes.ENUM('pending', 'confirmed', 'cancelled', 'completed'),
       defaultValue: 'pending',
     },
     idempotency_key: {
