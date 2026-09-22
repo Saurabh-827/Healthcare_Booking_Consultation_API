@@ -2,17 +2,23 @@ import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { createClient } from 'redis';
 
+// Check if running in Jest test environment
+const isTest = process.env.NODE_ENV === 'test';
+
 // 1. Redis Client Setup
 const redisClient = createClient({
   url: process.env.REDIS_URL || 'redis://localhost:6379'
 });
 
-redisClient.on('error', (err) => console.log('Redis Client Error', err));
-redisClient.on('connect', () => console.log('Redis Client Connected successfully'));
+if (!isTest) {
+  redisClient.on('error', (err) => console.log('Redis Client Error', err));
+  redisClient.on('connect', () => console.log('Redis Client Connected successfully'));
+  
+  (async () => {
+    try { await redisClient.connect(); } catch (e) {}
+  })();
+}
 
-(async () => {
-  await redisClient.connect();
-})();
 
 // 2. Global Rate Limiter (Public APIs)
 export const globalRateLimiter = rateLimit({
@@ -20,7 +26,7 @@ export const globalRateLimiter = rateLimit({
   max: 100,
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  store: new RedisStore({
+  store: isTest ? undefined: new RedisStore({
     sendCommand: (...args: string[]) => redisClient.sendCommand(args),
   }),
   message: {
@@ -35,7 +41,7 @@ export const authRateLimiter = rateLimit({
   max: 10, 
   standardHeaders: true,
   legacyHeaders: false,
-  store: new RedisStore({
+  store:isTest ? undefined : new RedisStore({
     sendCommand: (...args: string[]) => redisClient.sendCommand(args),
   }),
   message: {
