@@ -1,7 +1,9 @@
-import { User } from './models/User';
-import { Doctor } from './models/Doctor';
-import { Appointment } from './models/Appointment';
-import { Payment } from './models/Payment';
+import './models/User';
+import './models/Doctor';
+import './models/Appointment';
+import './models/Payment';
+import './models/Prescription';
+
 import app from './app';
 import { connectDB } from './config/database';
 
