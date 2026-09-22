@@ -2,6 +2,7 @@ import { injectable, inject } from 'tsyringe';
 import { PrescriptionRepository } from '../repositories/PrescriptionRepository';
 import { Appointment } from '../models/Appointment';
 import { AppError } from '../utils/AppError';
+import { sendEmailJob } from '../workers/email.worker';
 
 @injectable()
 export class PrescriptionService {
@@ -32,6 +33,13 @@ export class PrescriptionService {
     appointment.status = 'completed';
     await appointment.save();
 
+    try {
+      await sendEmailJob('raju.patient@amrutam.com', 'Your Prescription is Ready', { 
+        message: 'Dr. Ramesh has uploaded your prescription.' 
+      });
+    } catch (err) {
+      console.error('Failed to add email job to queue:', err);
+    }
     return prescription;
   }
 }
