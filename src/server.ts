@@ -1,4 +1,5 @@
 import { User } from './models/User';
+import { Doctor } from './models/Doctor';
 import { Appointment } from './models/Appointment';
 import { Payment } from './models/Payment';
 import app from './app';
