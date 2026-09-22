@@ -3,6 +3,7 @@ import { PrescriptionRepository } from '../repositories/PrescriptionRepository';
 import { Appointment } from '../models/Appointment';
 import { AppError } from '../utils/AppError';
 import { sendEmailJob } from '../workers/email.worker';
+import { AuditService } from './AuditService';
 
 @injectable()
 export class PrescriptionService {
@@ -40,6 +41,15 @@ export class PrescriptionService {
     } catch (err) {
       console.error('Failed to add email job to queue:', err);
     }
+
+    await AuditService.logAction(
+      doctorId, 
+      'CREATE_PRESCRIPTION', 
+      'Prescription', 
+      prescription.id, 
+      { appointmentId }
+    );
+
     return prescription;
   }
 }

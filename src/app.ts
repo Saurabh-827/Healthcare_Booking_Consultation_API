@@ -14,6 +14,7 @@ import morgan from 'morgan';
 import { logger } from './utils/logger';
 import { metricsRegistry, metricsMiddleware } from './utils/metrics';
 import responseTime from 'response-time';
+import adminRoutes from './routes/admin.routes';
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/doctors', doctorRoutes);
 app.use('/api/v1/prescriptions', prescriptionRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 // Basic health check endpoint
 app.get('/health', (req, res) => {
