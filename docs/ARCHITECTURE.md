@@ -1,50 +1,179 @@
 # Architecture Document: HealthCare Booking & Consultation API
 
 ## 1. System Overview & Tech Stack
+
 This document outlines the architecture for the HealthCare Booking & Consultation API, designed to handle 100k daily consultations with high availability (99.95%) and strict latency requirements (p95 < 200ms for reads, < 500ms for writes).
 
-*   **Language & Framework:** Node.js with TypeScript and Express.js. Chosen for its asynchronous, non-blocking I/O, which is ideal for handling high concurrent connections at scale.
-*   **Database:** PostgreSQL. Chosen for robust relational integrity, complex queries, and ACID compliance required for healthcare and payment data.
-*   **Caching & Background Jobs:** Redis. Used for fast read operations and as a message broker for asynchronous tasks.
-*   **Architecture Pattern:** Modular Services with Dependency Injection (DI) to ensure clean separation of concerns and testability.
-*   **Deployment:** Containerized deployment using Docker and CI/CD pipelines.
+| Component | Technology | Reason |
+|---|---|---|
+| Runtime | Node.js + TypeScript | Non-blocking I/O for high concurrency |
+| Framework | Express.js | Lightweight, middleware-friendly |
+| Database | PostgreSQL 15 | ACID compliance, relational integrity |
+| Caching & Queues | Redis + BullMQ | Sub-ms reads, async job processing |
+| Auth | JWT + bcrypt | Stateless, scalable authentication |
+| Validation | Zod | Runtime type-safe schema validation |
+| Observability | Prometheus + Winston | Metrics, structured logging |
+| Containerization | Docker + Docker Compose | Reproducible environments |
+| CI/CD | GitHub Actions | Automated test + build pipeline |
+
+---
 
 ## 2. High-Level Architecture & Data Flow
 
-![Database ER Diagram](./images/er-diagram.png)
+```
+Client
+  │
+  ▼
+Nginx / Load Balancer (SSL Termination)
+  │
+  ▼
+Express API Server
+  ├── Rate Limiter (Redis-backed)
+  ├── Helmet (Security Headers)
+  ├── Zod Validation
+  ├── JWT Auth + RBAC
+  │
+  ├──▶ PostgreSQL (Writes: Bookings, Payments, Prescriptions)
+  ├──▶ Redis Cache (Reads: Doctor availability, slots)
+  └──▶ BullMQ Worker (Async: Email notifications)
+```
 
-The system follows a layered modular architecture:
+**Request Flow:**
+1. Client hits Load Balancer → SSL terminated
+2. Rate Limiter checks Redis → blocks abuse
+3. Zod validates request body/params
+4. JWT middleware authenticates + RBAC authorizes
+5. Controller → Service → Repository → PostgreSQL
+6. Heavy tasks (email) pushed to BullMQ queue
+7. Worker processes queue asynchronously
 
-1.  **Client Request:** Hits the API Gateway / Nginx Load Balancer.
-2.  **API Gateway:** Handles Rate Limiting, initial input validation, and SSL termination.
-3.  **Application Layer:** Node.js backend utilizing modular services (e.g., `AuthService`, `BookingService`, `ConsultationService`).
-4.  **Data Layer:** 
-    *   **Writes:** Directed to the PostgreSQL primary database. Middleware strictly enforces idempotency for critical writes (e.g., bookings, payments).
-    *   **Reads:** Doctor availability and search queries are served from Redis Cache to maintain < 200ms latency.
+---
 
-## 3. Caching, Data Partitioning, and Concurrency Handling
-To scale up to 100k daily consultations:
-*   **Caching Strategy:** Doctor profiles and availability slots are cached in Redis. Cache invalidation occurs automatically when a slot is booked or a doctor updates their schedule.
-*   **Concurrency Handling (Double Booking Prevention):** We utilize PostgreSQL composite unique constraints `(doctor_id, start_time)` and Pessimistic Locking (`SELECT ... FOR UPDATE`) during the booking transaction to prevent race conditions.
-*   **Data Partitioning:** Heavy tables like `audit_logs` and `consultations` are partitioned by `created_at` (monthly) to ensure database queries remain performant over time.
+## 3. Booking Flow — Sequence Diagram
 
-## 4. Transaction Management & Sagas
-*   **Booking Flow & Sagas:** The booking lifecycle involves multiple steps (Reserve Slot -> Process Payment -> Notify). We implement the Saga pattern. If the payment step fails, a compensating transaction automatically reverts the slot status to 'Available'.
-*   **Idempotency:** Critical write operations (Booking, Payments) require an `Idempotency-Key` in the request header. The system stores these keys in a Redis/Postgres table for 24 hours to silently ignore duplicate network requests, ensuring no user is charged twice.
+```
+Patient          API Server          PostgreSQL              BullMQ
+  │                  │                    │                     │
+  │── POST /appointments/book ───────────▶│                     │
+  │   (x-idempotency-key header)          │                     │
+  │                  │                    │                     │
+  │                  │── Check idempotency_key in DB ──────────▶│
+  │                  │◀─ Already exists? Return cached 200 ─────│
+  │                  │                    │                     │
+  │                  │── BEGIN TRANSACTION ───────────────────▶ │
+  │                  │                    │                     │
+  │                  │── SELECT * FROM AvailabilitySlots        │
+  │                  │   WHERE id = slot_id                     │
+  │                  │   FOR UPDATE (Pessimistic Lock) ────────▶│
+  │                  │◀─ slot row locked ─────────────────────  │
+  │                  │                    │                     │
+  │                  │  [slot.status !== 'available']           │
+  │                  │── ROLLBACK ────────────────────────────▶ │
+  │◀─ 409 Conflict ──│                    │                     │
+  │                  │                    │                     │
+  │                  │  [slot.status === 'available']           │
+  │                  │── INSERT INTO Appointments ─────────────▶│
+  │                  │── UPDATE slot SET status='booked' ──────▶│
+  │                  │── COMMIT TRANSACTION ───────────────────▶│
+  │                  │                    │                     │
+  │                  │─────────────────────────── Queue Email ─▶│
+  │◀─ 201 Created ───│                    │              Worker processes async
+```
 
-## 5. Retry & Backoff Strategies
-*   **External API Failures:** Communications with external services (SMS, Email, Payment Gateways) use an Exponential Backoff strategy to prevent system overload during third-party downtimes.
-*   **Asynchronous Processing:** Heavy tasks such as generating prescription PDFs or sending emails are offloaded to Redis-backed queues (e.g., BullMQ) with built-in retry mechanisms and dead-letter queues (DLQ).
+---
 
-## 6. Security & Threat Modeling
-Security is implemented based on OWASP top 10 mitigation guidelines:
-*   **Authentication & Authorization:** JWT-based stateless authentication with Multi-Factor Authentication (MFA) support. Strict Role-Based Access Control (RBAC) separates Patient, Doctor, and Admin flows.
-*   **Data Protection:** Data in transit is secured via TLS. Personally Identifiable Information (PII) and medical records in PostgreSQL are protected using data classification and at-rest encryption.
-*   **Secret Management:** All keys and secrets are managed via environment variables with a defined key rotation policy.
-*   **Attack Surface Mitigation:** API endpoints are protected against brute-force attacks via rate limiters. Input validation is strictly enforced using Zod/Class-validator.
-*   **Dependency Scanning:** The CI pipeline includes automated dependency scanning (e.g., `npm audit` or Snyk) to catch vulnerable packages before deployment.
+## 4. ER Diagram
 
-## 7. Observability & Audit Trails
-*   **Metrics & Traces:** We utilize Prometheus and Grafana (or similar APM tools) to track system metrics, specifically monitoring p95 latency targets and memory usage.
-*   **Logging:** Centralized structured logging (JSON format) is implemented for all application errors and critical state changes.
-*   **Compliance (Audit Trails):** Every sensitive action (e.g., updating a prescription, modifying user roles) asynchronously writes a detailed record to the `audit_logs` table, storing the `user_id`, `action`, and `changes` (old vs. new state) for healthcare compliance.
+![ER Diagram](./images/er-diagram.png)
+
+**Core Table Relationships:**
+
+```
+users (id, email, password, role, first_name, last_name)
+  │
+  ├──▶ Doctors (id, user_id FK, speciality, experience_years)
+  │         │
+  │         └──▶ AvailabilitySlots (id, doctor_id FK, start_time, end_time, status)
+  │                     │
+  │                     └──▶ Appointments (id, patient_id FK, doctor_id FK, slot_id FK,
+  │                                        appointment_date, status, idempotency_key)
+  │                                │
+  │                                ├──▶ Payments (id, appointment_id FK, amount,
+  │                                │              status, idempotency_key)
+  │                                │
+  │                                └──▶ Prescriptions (id, appointment_id FK,
+  │                                                    symptoms, diagnosis, medicines)
+  │
+  └──▶ AuditLogs (id, user_id FK, action, entity, entity_id, details)
+```
+
+---
+
+## 5. Caching, Data Partitioning & Concurrency
+
+- **Caching Strategy:** Doctor profiles and availability slots cached in Redis. Cache invalidated on slot booking or schedule update.
+- **Concurrency (Double Booking Prevention):** PostgreSQL `SELECT ... FOR UPDATE` (Pessimistic Locking) on `AvailabilitySlots` during booking transaction. Only one request can lock a row at a time.
+- **Data Partitioning:** `AuditLogs` and `Appointments` tables partitioned by `created_at` (monthly) for long-term query performance at scale.
+
+---
+
+## 6. Transaction Management & Sagas
+
+**Booking Saga Steps:**
+1. `Reserve Slot` — Lock + mark slot as `booked`
+2. `Create Appointment` — Insert appointment record
+3. `Process Payment` — Charge patient (separate idempotent call)
+4. `Send Notification` — Async email via BullMQ
+
+**Compensating Transactions (Rollback):**
+- Payment fails → Appointment stays `pending`, slot reverted to `available`
+- DB error mid-transaction → Full rollback via `sequelize.transaction()`
+
+**Idempotency:** `x-idempotency-key` header required on Booking + Payment routes. Duplicate keys return cached response — no double charging.
+
+---
+
+## 7. Retry & Backoff Strategies
+
+- **Email/Notification failures:** BullMQ built-in retry with exponential backoff. Failed jobs move to Dead Letter Queue (DLQ) after 3 attempts.
+- **External Payment Gateway:** Exponential backoff — 1s → 2s → 4s → fail with alert.
+- **Database connection drops:** Sequelize connection pool auto-reconnects with configurable retry limits.
+
+---
+
+## 8. Security & Threat Modeling
+
+See [SECURITY.md](./SECURITY.md) for full STRIDE threat model and checklist.
+
+**Summary:**
+- JWT authentication, no fallback secrets — app crashes if `JWT_SECRET` missing
+- RBAC middleware on every protected route
+- Helmet.js for secure HTTP headers
+- Zod input validation before any DB operation
+- bcrypt (salt rounds: 10) for password hashing
+- Redis-backed rate limiting (global + auth-specific)
+- AuditLog table for compliance tracking
+
+---
+
+## 9. Observability
+
+- **Metrics:** Prometheus (`/metrics` endpoint) — HTTP request count, p95 latency histograms
+- **Logging:** Winston structured JSON logs → `logs/all.log` + `logs/error.log`
+- **HTTP Logging:** Morgan middleware piped to Winston
+- **Health Check:** `GET /health` endpoint for load balancer probes
+
+---
+
+## 10. Backup & Disaster Recovery (DR) Strategy
+
+| Strategy | Implementation |
+|---|---|
+| Database Backups | Daily `pg_dump` snapshots to S3-compatible storage |
+| Point-in-Time Recovery | PostgreSQL WAL archiving enabled |
+| Redis Persistence | RDB snapshots every 60s + AOF logging |
+| Multi-AZ Deployment | Primary DB + read replica in separate availability zones |
+| Failover | Automated failover via pgBouncer / RDS Multi-AZ |
+| RTO Target | < 30 minutes |
+| RPO Target | < 5 minutes data loss |
+| DR Testing | Monthly failover drills |

@@ -1,9 +1,11 @@
 import { injectable, inject } from 'tsyringe';
 import { PrescriptionRepository } from '../repositories/PrescriptionRepository';
 import { Appointment } from '../models/Appointment';
+import { User } from '../models/User';
 import { AppError } from '../utils/AppError';
 import { sendEmailJob } from '../workers/email.worker';
 import { AuditService } from './AuditService';
+import { logger } from '../utils/logger';
 
 @injectable()
 export class PrescriptionService {
@@ -12,8 +14,10 @@ export class PrescriptionService {
   ) {}
 
   async writePrescription(doctorId: string, appointmentId: string, prescriptionData: any) {
-    // 1. Appointment verify 
-    const appointment = await Appointment.findByPk(appointmentId);
+    // 1. Appointment verify with patient email
+    const appointment = await Appointment.findByPk(appointmentId, {
+      include: [{ model: User, as: 'patient', attributes: ['email'] }]
+    });
     if (!appointment) {
       throw new AppError('Appointment not found', 404);
     }
@@ -35,11 +39,12 @@ export class PrescriptionService {
     await appointment.save();
 
     try {
-      await sendEmailJob('raju.patient@amrutam.com', 'Your Prescription is Ready', { 
-        message: 'Dr. Ramesh has uploaded your prescription.' 
+      const patientEmail = (appointment as any).patient?.email || 'patient@example.com';
+      await sendEmailJob(patientEmail, 'Your Prescription is Ready', {
+        message: 'Your prescription has been uploaded.'
       });
     } catch (err) {
-      console.error('Failed to add email job to queue:', err);
+      logger.error('Failed to add email job to queue:', err);
     }
 
     await AuditService.logAction(

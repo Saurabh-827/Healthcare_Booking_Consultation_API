@@ -1,4 +1,5 @@
 import { Queue, Worker, Job } from 'bullmq';
+import { logger } from '../utils/logger';
 
 const connection = {
   host: process.env.REDIS_HOST || '127.0.0.1',
@@ -7,38 +8,35 @@ const connection = {
   maxRetriesPerRequest: null
 };
 
-// 1. Queue
 export const emailQueue = new Queue('emailQueue', { connection });
 
-// 2. Job add function
 export const sendEmailJob = async (email: string, subject: string, data: any) => {
   await emailQueue.add('email-job', { type: 'Prescription', email, subject, data });
-  console.log(`[Queue] Job added for ${email}`);
+  logger.info(`[Queue] Job added for ${email}`);
 };
 
 let emailWorker: Worker;
 
 export const startEmailWorker = () => {
-  if (emailWorker) return; 
+  if (emailWorker) return;
 
   emailWorker = new Worker('emailQueue', async (job: Job) => {
     const { type, email, subject, data } = job.data;
+    logger.info(`[Worker] Started sending ${type} email to ${email}`);
 
-    console.log(`[Worker] Started sending ${type} email to ${email}...`);
-    
     // Simulating Email Sending
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    
-    console.log(`[Worker] Successfully sent email to ${email}. Payload:`, data);
+
+    logger.info(`[Worker] Successfully sent email to ${email}. Payload: ${JSON.stringify(data)}`);
   }, { connection });
 
   emailWorker.on('completed', (job) => {
-    console.log(`[Worker] Job ${job.id} completed successfully`);
+    logger.info(`[Worker] Job ${job.id} completed successfully`);
   });
 
   emailWorker.on('failed', (job, err) => {
-    console.log(`[Worker] Job ${job?.id} failed with error ${err.message}`);
+    logger.error(`[Worker] Job ${job?.id} failed: ${err.message}`);
   });
 
-  console.log('[Worker] Email worker initialized and listening to queue.');
+  logger.info('[Worker] Email worker initialized and listening to queue.');
 };
