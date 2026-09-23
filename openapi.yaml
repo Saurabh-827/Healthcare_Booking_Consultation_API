@@ -1,13 +1,16 @@
 openapi: 3.0.3
 info:
   title: HealthCare Booking & Consultation API
-  description: Production-grade backend API for telemedicine consultations.
+  description: Production-grade backend API for telemedicine consultations featuring RBAC, Idempotency, and Pessimistic Locking.
   version: 1.0.0
 servers:
   - url: http://localhost:3000/api/v1
     description: Local Development Server
 
 paths:
+  # ==========================================
+  # AUTHENTICATION
+  # ==========================================
   /auth/register:
     post:
       summary: Register a new user (Patient or Doctor)
@@ -23,8 +26,44 @@ paths:
         '201':
           description: User registered successfully
         '400':
-          description: Validation Error (e.g., Email already exists)
+          description: Validation Error (e.g., Email already exists or missing fields)
 
+  /auth/login:
+    post:
+      summary: Login to get JWT Token
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+
+  # ==========================================
+  # DOCTORS & AVAILABILITY
+  # ==========================================
   /doctors:
     get:
       summary: Search and filter available doctors
@@ -35,11 +74,6 @@ paths:
           in: query
           schema:
             type: string
-        - name: available_date
-          in: query
-          schema:
-            type: string
-            format: date
       responses:
         '200':
           description: List of doctors
@@ -50,21 +84,117 @@ paths:
                 items:
                   $ref: '#/components/schemas/Doctor'
 
-  /consultations/book:
+  /doctors/onboard:
     post:
-      summary: Book a consultation slot
+      summary: Onboard a new Doctor (Admin only)
+      tags:
+        - Doctors
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+                - speciality
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                speciality:
+                  type: string
+                experience_years:
+                  type: integer
+      responses:
+        '201':
+          description: Doctor onboarded successfully
+        '403':
+          description: Forbidden - Requires Admin role
+
+  /availability:
+    get:
+      summary: Get available slots for a specific doctor on a specific date
+      tags:
+        - Availability
+      parameters:
+        - name: doctor_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: '2026-09-25'
+      responses:
+        '200':
+          description: List of available slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AvailabilitySlot'
+
+  /availability/create:
+    post:
+      summary: Create new availability slots (Doctor/Admin only)
+      tags:
+        - Availability
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - doctor_id
+                - start_time
+                - end_time
+              properties:
+                doctor_id:
+                  type: string
+                  format: uuid
+                start_time:
+                  type: string
+                  format: date-time
+                end_time:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Slot created successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (Not a Doctor or Admin)
+
+  # ==========================================
+  # APPOINTMENTS (CONSULTATIONS)
+  # ==========================================
+  /appointments/book:
+    post:
+      summary: Book a consultation slot with pessimistic locking
       tags:
         - Consultations
       security:
         - bearerAuth: []
       parameters:
-        - name: Idempotency-Key
+        - name: x-idempotency-key
           in: header
           required: true
           schema:
             type: string
-            format: uuid
-          description: Unique key to prevent double booking and duplicate payments
+          description: Unique key to prevent double booking
       requestBody:
         required: true
         content:
@@ -74,10 +204,117 @@ paths:
       responses:
         '201':
           description: Consultation booked successfully
+        '200':
+          description: Cached response for duplicate idempotent request
         '409':
-          description: Conflict - Slot already booked
-        '429':
-          description: Rate limit exceeded
+          description: Conflict - Slot already booked or cancelled
+        '404':
+          description: Invalid slot or doctor combination
+
+  # ==========================================
+  # PAYMENTS & PRESCRIPTIONS
+  # ==========================================
+  /payments/pay:
+    post:
+      summary: Process payment for an appointment
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: x-idempotency-key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Unique key to prevent double charging
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - appointment_id
+                - amount
+              properties:
+                appointment_id:
+                  type: string
+                  format: uuid
+                amount:
+                  type: number
+      responses:
+        '201':
+          description: Payment processed successfully
+        '400':
+          description: Missing idempotency key or validation error
+
+  /prescriptions:
+    post:
+      summary: Create a prescription for a completed appointment (Doctor only)
+      tags:
+        - Prescriptions
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - appointment_id
+                - diagnosis
+              properties:
+                appointment_id:
+                  type: string
+                  format: uuid
+                symptoms:
+                  type: string
+                diagnosis:
+                  type: string
+                medicines:
+                  type: array
+                  items:
+                    type: object
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Prescription created successfully
+        '403':
+          description: Forbidden - Requires Doctor role
+
+  # ==========================================
+  # ADMIN DASHBOARD
+  # ==========================================
+  /admin/analytics:
+    get:
+      summary: Get platform analytics and statistics (Admin only)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Analytics fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsResponse'
+        '403':
+          description: Forbidden - Requires Admin role
+
+  /admin/audit-logs:
+    get:
+      summary: Get recent audit logs (Admin only)
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of audit logs
 
 components:
   securitySchemes:
@@ -94,17 +331,16 @@ components:
         - password
         - role
         - first_name
-        - last_name
       properties:
         email:
           type: string
           format: email
         password:
           type: string
-          minLength: 8
+          minLength: 6
         role:
           type: string
-          enum: [Patient, Doctor]
+          enum: [Patient, Doctor, Admin]
         first_name:
           type: string
         last_name:
@@ -123,6 +359,25 @@ components:
         experience_years:
           type: integer
 
+    AvailabilitySlot:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        doctor_id:
+          type: string
+          format: uuid
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [available, booked, cancelled]
+
     BookingRequest:
       type: object
       required:
@@ -135,3 +390,35 @@ components:
         slot_id:
           type: string
           format: uuid
+
+    AnalyticsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            users:
+              type: object
+              properties:
+                total_patients:
+                  type: integer
+                total_doctors:
+                  type: integer
+            appointments:
+              type: object
+              properties:
+                total:
+                  type: integer
+                pending:
+                  type: integer
+                completed:
+                  type: integer
+            revenue:
+              type: object
+              properties:
+                total_earnings:
+                  type: number
