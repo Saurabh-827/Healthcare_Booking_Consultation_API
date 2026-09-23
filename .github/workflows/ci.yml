@@ -57,3 +57,5 @@ jobs:
         DB_PASSWORD: password
         DB_NAME: healthcare_db
         JWT_SECRET: testsecret
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379  
