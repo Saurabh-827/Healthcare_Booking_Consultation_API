@@ -2,6 +2,15 @@ import request from 'supertest';
 import app from '../app';
 import { sequelize } from '../config/database';
 
+jest.mock('express-rate-limit', () => jest.fn().mockImplementation(() => (req: any, res: any, next: any) => next()));
+jest.mock('rate-limit-redis', () => jest.fn());
+jest.mock('redis', () => ({
+  createClient: jest.fn(() => ({ on: jest.fn(), connect: jest.fn().mockResolvedValue(true) }))
+}));
+jest.mock('bullmq', () => ({ Queue: jest.fn(), Worker: jest.fn() }));
+jest.mock('../utils/logger', () => ({
+  logger: { http: jest.fn(), info: jest.fn(), error: jest.fn(), debug: jest.fn(), warn: jest.fn() }
+}));
 jest.mock('../utils/metrics', () => ({
   metricsMiddleware: (req: any, res: any, next: any) => next(),
   metricsRegistry: { metrics: jest.fn(), contentType: 'text/plain' }

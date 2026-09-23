@@ -8,6 +8,6 @@ const router = Router();
 
 router.post('/register', validate(registerSchema), AuthController.register);
 router.post('/login', validate(loginSchema), AuthController.login);
-router.get('/profile', authenticate, authorizeRole(['Patient']), AuthController.profile);
+router.get('/profile', authenticate, authorizeRole(['Patient', 'Doctor', 'Admin']), AuthController.profile);
 
 export default router;
