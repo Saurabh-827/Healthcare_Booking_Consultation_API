@@ -3,11 +3,11 @@ import { sequelize } from '../config/database';
 import { Doctor } from './Doctor';
 
 export class AvailabilitySlot extends Model {
-  public id!: string;
-  public doctor_id!: string;
-  public start_time!: Date;
-  public end_time!: Date;
-  public status!: 'available' | 'booked' | 'cancelled';
+  public declare id: string;
+  public declare doctor_id: string;
+  public declare start_time: Date;
+  public declare end_time: Date;
+  public declare status: 'available' | 'booked' | 'cancelled';
 }
 
 AvailabilitySlot.init(
