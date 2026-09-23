@@ -1,0 +1,327 @@
+{
+  "info": {
+    "_postman_id": "ae768a08-bfa9-45a7-a350-3e5ea595c792",
+    "name": "Healthcare Booking API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54294539",
+    "_collection_link": "https://go.postman.co/collection/54294539-ae768a08-bfa9-45a7-a350-3e5ea595c792?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"first_name\": \"Raju\",\r\n  \"last_name\": \"Rastogi\",\r\n  \"email\": \"raju.patient@amrutam.com\",\r\n  \"password\": \"securePassword123\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Doctors",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/doctors",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "doctors"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"raju.patient@amrutam.com\",\r\n  \"password\": \"securePassword123\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Prescriptions",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{bearer_token_14w6}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"appointment_id\": \"af1bbe4e-51c9-44c5-9b9d-697ab955b7c1\",\r\n  \"symptoms\": \"Mild fever, cough\",\r\n  \"diagnosis\": \"Viral Infection\",\r\n  \"medicines\": [\r\n    { \"name\": \"Paracetamol 500mg\", \"dosage\": \"1 tablet twice a day\" }\r\n  ],\r\n  \"notes\": \"Drink plenty of warm water\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/prescriptions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "prescriptions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Admin_Audit_logs",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{bearer_token_0ud7}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/audit-logs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "audit-logs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{json_web_token_0j3z}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/profile",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "profile"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Appointments_book",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{bearer_token_0hqh}}"
+          },
+          {
+            "key": "x-idempotency-Key",
+            "value": "unique-booking-key-001"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"doctor_id\": \"70ab6909-da8f-4f3a-8ee1-14d4fc22812b\",\r\n  \"appointment_date\": \"2026-09-25T10:00:00Z\" \r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/appointments/book",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "appointments",
+            "book"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Payments",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{json_web_token_0j3z}}"
+          },
+          {
+            "key": "x-idempotency-key",
+            "value": "pay-key-12345"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"appointment_id\": \"940203ac-27c8-484f-84e9-1050d1a813bd\",\r\n  \"amount\": 500\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/payments/pay",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "payments",
+            "pay"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Metrics",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/metrics",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "metrics"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Doctors_Onboard",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{bearer_token_0ud7}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"user_id\": \"38e791c8-465f-4280-9dd7-c7d17882660f\",\r\n  \"speciality\": \"Cardiologist\",\r\n  \"experience_years\": 10\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/doctors/onboard",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "doctors",
+            "onboard"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "bearer_token_0hqh",
+      "secret": true
+    },
+    {
+      "key": "json_web_token_0j3z",
+      "secret": true
+    },
+    {
+      "key": "bearer_token_14w6",
+      "secret": true
+    },
+    {
+      "key": "json_web_token_075h",
+      "secret": true
+    },
+    {
+      "key": "bearer_token_0ud7",
+      "secret": true
+    },
+    {
+      "key": "json_web_token_0j5j",
+      "secret": true
+    }
+  ]
+}
