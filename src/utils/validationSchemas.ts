@@ -19,7 +19,7 @@ export const loginSchema = z.object({
 export const bookingSchema = z.object({
   body: z.object({
     doctor_id: z.uuid('Invalid Doctor ID format'),
-    appointment_date: z.iso.datetime('Invalid ISO datetime format')
+    slot_id: z.uuid('Invalid Slot ID format')
   })
 });
 

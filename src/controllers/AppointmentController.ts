@@ -6,15 +6,17 @@ export class AppointmentController {
   static async book(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const idempotencyKey = req.headers['x-idempotency-key'] as string;
-      const { doctor_id, appointment_date } = req.body;
+      const { doctor_id, slot_id } = req.body;
       
       const patient_id = (req as any).user.id; 
 
       const appointmentService = container.resolve(AppointmentService);
+      
+      // Updated call
       const result = await appointmentService.bookAppointment(
         patient_id, 
         doctor_id, 
-        appointment_date, 
+        slot_id, 
         idempotencyKey
       );
       
