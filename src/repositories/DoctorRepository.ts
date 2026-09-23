@@ -21,4 +21,7 @@ export class DoctorRepository {
       }]
     });
   }
+  async createProfile(data: any) {
+    return await Doctor.create(data);
+  }
 }
