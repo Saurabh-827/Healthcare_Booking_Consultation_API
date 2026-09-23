@@ -4,6 +4,9 @@ import { authenticate, authorizeRole } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-router.get('/audit-logs', authenticate, authorizeRole(['Admin']), AdminController.getAuditLogs);
+router.use(authenticate, authorizeRole(['Admin']));
+
+router.get('/audit-logs', AdminController.getAuditLogs);
+router.get('/analytics', AdminController.getAnalytics);
 
 export default router;
