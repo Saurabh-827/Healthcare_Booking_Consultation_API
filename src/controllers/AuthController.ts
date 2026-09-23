@@ -48,4 +48,16 @@ export class AuthController {
       next(error);
     }
   }
+  
+  static async profile(req: any, res: Response, next: NextFunction) {
+    try {
+      res.status(200).json({
+        success: true,
+        message: 'Welcome to your private profile',
+        user: req.user
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
 }

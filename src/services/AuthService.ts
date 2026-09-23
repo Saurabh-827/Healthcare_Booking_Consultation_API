@@ -56,8 +56,9 @@ export class AuthService {
       role: user.role
     };
   
-    const secret = process.env.JWT_SECRET || 'fallback_secret';
-    const token = jwt.sign(payload, secret, { expiresIn: '1d' }); // 1 day validity
+   const jwtSecret = process.env.JWT_SECRET;
+   if (!jwtSecret) throw new Error('FATAL ERROR: JWT_SECRET is not defined.');
+   const token = jwt.sign(payload, jwtSecret, { expiresIn: '1d' });
 
     return { user, token };
   }

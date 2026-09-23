@@ -18,10 +18,9 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   const token = authHeader.split(' ')[1];
 
   try {
-    const secret = process.env.JWT_SECRET || 'fallback_secret';
-    
-    // Token verify 
-    const decoded = jwt.verify(token, secret);
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error('FATAL ERROR: JWT_SECRET is not defined.');
+    const decoded = jwt.verify(token, secret);;
     
     req.user = decoded;
     
