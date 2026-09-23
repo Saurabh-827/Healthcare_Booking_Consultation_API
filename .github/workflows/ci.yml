@@ -57,3 +57,5 @@ jobs:
         DB_PASSWORD: REDACTED
         DB_NAME: healthcare_db
         JWT_SECRET: REDACTED
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379  
