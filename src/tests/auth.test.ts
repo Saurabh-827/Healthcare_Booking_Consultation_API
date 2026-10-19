@@ -26,6 +26,9 @@ jest.mock('../utils/metrics', () => ({
 }));
 
 
+const TEST_PASSWORD = process.env.TEST_PASSWORD ?? 'Test@1234!';
+const WRONG_PASSWORD = process.env.WRONG_PASSWORD ?? 'Wrong@5678!';
+
 describe('Auth Flow API Tests', () => {
   let mockUserRepository: any;
 
@@ -58,7 +61,7 @@ describe('Auth Flow API Tests', () => {
           first_name: 'Test',
           last_name: 'User',
           email: 'test@patient.com',
-          REDACTED: 'securePassword123'
+          REDACTED: TEST_PASSWORD
         });
 
       expect(response.status).toBe(201);
@@ -79,7 +82,7 @@ describe('Auth Flow API Tests', () => {
           first_name: 'Test',
           last_name: 'User',
           email: 'test@patient.com',
-          REDACTED: 'securePassword123'
+          REDACTED: TEST_PASSWORD
         });
 
       expect(response.status).toBe(400);
@@ -96,7 +99,7 @@ describe('Auth Flow API Tests', () => {
         .post('/api/v1/auth/login')
         .send({
           email: 'wrong@email.com',
-          REDACTED: 'wrongREDACTED'
+          REDACTED: WRONG_PASSWORD
         });
 
       expect(response.status).toBe(401);
