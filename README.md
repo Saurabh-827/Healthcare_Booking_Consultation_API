@@ -16,7 +16,7 @@ A highly scalable, production-ready RESTful API built for a telemedicine platfor
 - **Rate Limiting:** Redis-backed distributed rate limiting (global + strict auth-specific limits).
 - **Observability:** Prometheus metrics (`/metrics`), structured JSON logging via Winston & Morgan.
 - **Audit Compliance:** `AuditLogs` table tracks every sensitive action asynchronously.
-- **Security:** Helmet.js headers, bcrypt REDACTED hashing, JWT with no fallback secrets.
+- **Security:** Helmet.js headers, bcrypt password hashing, JWT with no fallback secrets.
 
 ---
 
