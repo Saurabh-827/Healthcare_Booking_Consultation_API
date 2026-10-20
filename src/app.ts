@@ -33,7 +33,7 @@ const morganMiddleware = morgan(
   {
     stream: {
       // Configured Morgan to use custom logger with the http severity
-      write: (message) => logger.http(message.trim()),
+      write: (message) => logger.http(message.trim().replace(/[\r\n]/g, ' ')),
     },
   }
 );

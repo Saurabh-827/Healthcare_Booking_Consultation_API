@@ -1,18 +1,22 @@
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { createClient } from 'redis';
+import { logger } from '../utils/logger';
 
 // Check if running in Jest test environment
 const isTest = process.env.NODE_ENV === 'test';
 
 // 1. Redis Client Setup
+const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
+const REDIS_PORT = process.env.REDIS_PORT || '6379';
+
 const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379'
+  socket: { host: REDIS_HOST, port: parseInt(REDIS_PORT, 10) }
 });
 
 if (!isTest) {
-  redisClient.on('error', (err) => console.log('Redis Client Error', err));
-  redisClient.on('connect', () => console.log('Redis Client Connected successfully'));
+  redisClient.on('error', (err) => logger.error(`Redis Client Error: ${String(err).replace(/[\r\n]/g, ' ')}`));
+  redisClient.on('connect', () => logger.info('Redis Client Connected successfully'));
   
   (async () => {
     try { await redisClient.connect(); } catch (e) {}

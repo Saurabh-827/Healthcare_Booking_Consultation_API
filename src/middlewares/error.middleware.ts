@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../utils/AppError';
+import { logger } from '../utils/logger';
 
 export const errorHandler = (err: Error | AppError, req: Request, res: Response, next: NextFunction): void => {
   let statusCode = 500;
@@ -21,7 +22,8 @@ export const errorHandler = (err: Error | AppError, req: Request, res: Response,
     message = err.message;
   }
 
-  console.error(`[Error] ${statusCode} - ${err.message}`);
+  const sanitized = err.message.replace(/[\r\n]/g, ' ');
+  logger.error(`[Error] ${statusCode} - ${sanitized}`);
 
   res.status(statusCode).json({
     success: false,

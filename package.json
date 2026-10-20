@@ -48,6 +48,10 @@
     "winston": "^3.19.0",
     "zod": "^4.6.5"
   },
+  "overrides": {
+    "handlebars": "^4.7.10",
+    "uuid": "^14.0.0"
+  },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",

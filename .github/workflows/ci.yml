@@ -15,7 +15,7 @@ jobs:
         image: postgres:15-alpine
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: REDACTED
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: healthcare_db
         ports:
           - 5432:5432
@@ -54,8 +54,8 @@ jobs:
         DB_HOST: localhost
         DB_PORT: 5432
         DB_USER: postgres
-        DB_PASSWORD: REDACTED
+        DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         DB_NAME: healthcare_db
-        JWT_SECRET: REDACTED
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
         REDIS_HOST: localhost
         REDIS_PORT: 6379  
