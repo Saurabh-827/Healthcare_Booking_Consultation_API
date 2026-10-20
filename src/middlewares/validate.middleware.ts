@@ -1,7 +1,11 @@
-import { ZodObject, ZodRawShape } from 'zod';
-import { Request, Response, NextFunction } from 'express';
+import { ZodObject, ZodRawShape } from "zod";
+import { Request, Response, NextFunction } from "express";
 
-export const validate = (schema: ZodObject<ZodRawShape>) =>
+const sanitize = (val: string) =>
+  String(val).replace(/[<>"'&]/g, (c) => `&#${c.charCodeAt(0)};`);
+
+export const validate =
+  (schema: ZodObject<ZodRawShape>) =>
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       await schema.parseAsync({
@@ -11,10 +15,14 @@ export const validate = (schema: ZodObject<ZodRawShape>) =>
       });
       next();
     } catch (error: any) {
+      const sanitizedErrors = error.errors?.map((e: any) => ({
+        ...e,
+        message: sanitize(e.message ?? ""),
+      }));
       res.status(400).json({
         success: false,
-        message: 'Validation failed',
-        errors: error.errors
+        message: "Validation failed",
+        errors: sanitizedErrors,
       });
     }
   };
